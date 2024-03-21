@@ -27,10 +27,19 @@ services:
   node-3:
     container_name: node-3
     image: node:latest
-    build:
-      context: ..
-      dockerfile: Raft.Node/Dockerfile
     environment:
       - NODE_ID=node-3
       - PEER_ADDRESSES=http://node-1:8080,http://node-2:8080
       - PEER_IDS=node-1,node-2
+
+  gateway:
+    container_name: gateway
+    image: gateway:latest
+    build:
+      context: ..
+      dockerfile: Raft.GateWay/Dockerfile
+    ports:
+      - 8080:8080
+    environment:
+      - NODE_ADDRESSES=http://node-1:8080,http://node-2:8080,http://node-3:8080
+      - NODE_IDS=node-1,node-2,node-3
