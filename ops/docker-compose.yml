@@ -1,0 +1,36 @@
+version: '3'
+
+services:
+  node-1:
+    container_name: node-1
+    image: node:latest
+    build:
+      context: ..
+      dockerfile: Raft.Node/Dockerfile
+    environment:
+      - NODE_ID=node-1
+      - PEER_ADDRESSES=http://node-2:8080,http://node-3:8080
+      - PEER_IDS=node-2,node-3
+
+  
+  node-2:
+    container_name: node-2
+    image: node:latest
+    build:
+      context: ..
+      dockerfile: Raft.Node/Dockerfile
+    environment:
+      - NODE_ID=node-2
+      - PEER_ADDRESSES=http://node-1:8080,http://node-3:8080
+      - PEER_IDS=node-1,node-3
+
+  node-3:
+    container_name: node-3
+    image: node:latest
+    build:
+      context: ..
+      dockerfile: Raft.Node/Dockerfile
+    environment:
+      - NODE_ID=node-3
+      - PEER_ADDRESSES=http://node-1:8080,http://node-2:8080
+      - PEER_IDS=node-1,node-2

@@ -1,4 +1,4 @@
-namespace Raft.Shared;
+namespace Raft.Shared.Models;
 
 public class AppendEntriesRequest
 {
@@ -8,4 +8,10 @@ public class AppendEntriesRequest
     public int PrevLogTerm { get; set; }
     public List<LogEntry> PrevLogTermEntries { get; set; }
     public int LeaderCommit { get; set; }
+}
+
+public class AppendEntriesResponse
+{
+    public int Term { get; set; }
+    public bool Success { get; set; }
 }
