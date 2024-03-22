@@ -10,6 +10,6 @@ public interface IRaftNode
     Task<RequestVoteResponse> RequestVote(RequestVoteRequest request);
     Task<StrongGetResponse> StrongGet(string key);
     Task<string> EventualGet(string key);
-    Task<bool> CompareAndSwap(CompareAndSwapRequest request);
-    Task<bool> IsMostRecentLeader(string leaderId);
+    Task<CompareAndSwapResponse> CompareAndSwap(CompareAndSwapRequest request);
+    Task<string> MostRecentLeader();
 }

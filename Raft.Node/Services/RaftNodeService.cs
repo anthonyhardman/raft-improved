@@ -109,7 +109,21 @@ public class RaftNodeService : Raft.Grpc.RaftNode.RaftNodeBase
                 var response = await _node.CompareAndSwap(raftRequest);
                 return new CompareAndSwapResponse
                 {
-                    Success = response
+                    Success = response.Success,
+                    Version = response.Version,
+                    Value = response.Value
+                };
+            });
+    }
+
+    public override async Task<MostRecentLeaderResponse> MostRecentLeader(MostRecentLeaderRequest request, ServerCallContext context)
+    {
+        return await _retryPolicy.ExecuteAsync(async () =>
+            {
+                var response = await _node.MostRecentLeader();
+                return new MostRecentLeaderResponse
+                {
+                    LeaderId = response
                 };
             });
     }

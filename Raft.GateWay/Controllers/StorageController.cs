@@ -3,44 +3,74 @@ using Microsoft.AspNetCore.Mvc;
 using Raft.Shared;
 using Raft.Shared.Models;
 
-namespace MyApp.Namespace
+namespace MyApp.Namespace;
+
+[Route("api/[controller]")]
+[ApiController]
+public class StorageController : ControllerBase
 {
-  [Route("api/[controller]")]
-  [ApiController]
-  public class StorageController : ControllerBase
+  private readonly List<IRaftNode> _raftNodes;
+
+  public StorageController(List<IRaftNode> raftNodes)
   {
-    private readonly List<IRaftNode> _raftNodes;
-
-    public StorageController(List<IRaftNode> raftNodes)
-    {
-      _raftNodes = raftNodes;
-    }
-
-    [HttpGet("strong")]
-    public async Task<ActionResult<string>> StrongGet(string key)
-    {
-      var node = _raftNodes.First();
-
-      var response = await node.StrongGet(key);
-      return Ok(response);
-    }
-
-    [HttpGet("eventual")]
-    public async Task<ActionResult<string>> EventualGet(string key)
-    {
-      var node = _raftNodes.First();
-
-      var response = await node.EventualGet(key);
-      return Ok(response);
-    }
-
-    [HttpPost("compare-and-swap")]
-    public async Task<ActionResult<bool>> CompareAndSwap(CompareAndSwapRequest request)
-    {
-      var node = _raftNodes.First();
-
-      var response = await node.CompareAndSwap(request);
-      return Ok(response);
-    }
+    _raftNodes = raftNodes;
   }
+
+  [HttpGet("strong")]
+  public async Task<ActionResult<StrongGetResponse>> StrongGet(string key)
+  {
+    var node = GetRandomNode();
+    var leaderId = await node.MostRecentLeader();
+    var leader = _raftNodes.FirstOrDefault(x => x.Id == leaderId);
+
+    var response = await leader.StrongGet(key);
+    return Ok(response);
+  }
+
+  [HttpGet("eventual")]
+  public async Task<ActionResult<string>> EventualGet(string key)
+  {
+    var node = GetRandomNode();
+    var response = await node.EventualGet(key);
+    return Ok(response);
+  }
+
+  [HttpPost("compare-and-swap")]
+  public async Task<ActionResult<CompareAndSwapResponse>> CompareAndSwap(CompareAndSwapRequest request)
+  {
+    const int maxAttempts = 3;
+    for (int attempt = 0; attempt < maxAttempts; attempt++)
+    {
+      try
+      {
+        var node = GetRandomNode();
+        Console.WriteLine($"Requesting leader from {node.Id}");
+        var leaderId = await node.MostRecentLeader();
+        Console.WriteLine($"Leader is {leaderId}");
+        var leader = _raftNodes.FirstOrDefault(x => x.Id == leaderId);
+        var response = await leader.CompareAndSwap(request);
+
+        if (response.Version >= 0)
+        {
+          return Ok(response);
+        }
+      }
+      catch (Exception e)
+      {
+        Console.WriteLine($"Error on attempt {attempt + 1}: {e.Message}");
+      }
+
+      await Task.Delay(333);
+    }
+
+    return StatusCode(500, "Failed to complete compare-and-swap after maximum attempts");
+  }
+
+  private IRaftNode GetRandomNode()
+  {
+    var random = new Random();
+    var index = random.Next(0, _raftNodes.Count);
+    return _raftNodes[index];
+  }
+
 }

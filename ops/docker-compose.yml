@@ -43,3 +43,14 @@ services:
     environment:
       - NODE_ADDRESSES=http://node-1:8080,http://node-2:8080,http://node-3:8080
       - NODE_IDS=node-1,node-2,node-3
+
+  shop:
+    container_name: shop
+    image: shop:latest
+    build:
+      context: ..
+      dockerfile: Raft.Shop/Dockerfile
+    ports:
+      - 8081:8080
+    environment:
+      - RAFT_GATEWAY_URL=http://gateway:8080

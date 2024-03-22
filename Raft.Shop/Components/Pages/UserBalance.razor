@@ -1,0 +1,97 @@
+﻿@page "/balance"
+@rendermode InteractiveServer
+@using System.ComponentModel.DataAnnotations
+
+@if (ShowError)
+{
+    <div class="alert alert-danger d-flex justify-content-start" role="alert">
+        <button class="btn btn-outline-danger" @onclick="() => ShowError = false">X</button>
+        <div class="fw-bold ms-3 me-auto my-auto">
+            An error occurred while processing your request. Please try again.
+        </div>
+    </div>
+}
+
+@if (!UsernameEntered || string.IsNullOrEmpty(Username))
+{
+    <EditForm Model="@this" OnSubmit="HandleUsernameSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label for="username" class="form-label">Enter your username:
+            <InputText id="username" class="form-control" @bind-Value="Username" />
+        </label>
+    </div>
+    <button type="submit" class="btn btn-primary">Check Balance</button>
+</EditForm>
+}
+else
+{
+    <h1>Hello, @Username!</h1>
+    <p>Your balance is: @Balance.ToString("C2", new System.Globalization.CultureInfo("en-US"))</p>
+    <EditForm Model="@this">
+        <DataAnnotationsValidator />
+        <ValidationSummary />
+        <label class="form-label">
+            <InputNumber @bind-Value="DepositOrWithdrawAmount" class="form-control" />
+        </label>
+        <button type="submit" class="btn btn-primary" @onclick="DepositToUserBalance"
+            disabled="@disableDepositAndWithdrawButtons">Deposit</button>
+        <button type="button" class="btn btn-primary" @onclick="WithdrawFromUserBalance"
+            disabled="@disableDepositAndWithdrawButtons">Withdraw</button>
+    </EditForm>
+}
+
+@code {
+    [Inject] BalanceService BalanceService { get; set; }
+    [Required(ErrorMessage = "Username is required")]
+    public string Username { get; set; }
+    public decimal Balance { get; set; }
+    public int BalanceVersion { get; set; }
+    private int DepositOrWithdrawAmount { get; set; }
+    private bool UsernameEntered { get; set; } = false;
+    private bool disableDepositAndWithdrawButtons { get; set; } = false;
+    public bool ShowError { get; set; }
+
+    private async Task HandleUsernameSubmit()
+    {
+        if (!string.IsNullOrEmpty(Username))
+        {
+            (Balance, BalanceVersion) = await BalanceService.GetUserBalance(Username);
+            UsernameEntered = true;
+        }
+    }
+
+    private async Task DepositToUserBalance()
+    {
+        if (DepositOrWithdrawAmount > 0)
+        {
+            disableDepositAndWithdrawButtons = true;
+            var success = await BalanceService.DepositOrWithdraw(Username, Balance, BalanceVersion, DepositOrWithdrawAmount);
+            (Balance, BalanceVersion) = await BalanceService.GetUserBalance(Username);
+            DepositOrWithdrawAmount = 0;
+            disableDepositAndWithdrawButtons = false;
+            DepositOrWithdrawAmount = 0;
+            if (!success)
+            {
+                ShowError = true;
+            }
+        }
+    }
+
+    private async Task WithdrawFromUserBalance()
+    {
+        if (DepositOrWithdrawAmount > 0)
+        {
+            disableDepositAndWithdrawButtons = true;
+            var success = await BalanceService.DepositOrWithdraw(Username, Balance, BalanceVersion, -DepositOrWithdrawAmount);
+            (Balance, BalanceVersion) = await BalanceService.GetUserBalance(Username);
+            DepositOrWithdrawAmount = 0;
+            disableDepositAndWithdrawButtons = false;
+            if (!success)
+            {
+                ShowError = true;
+            }
+        }
+    }
+}

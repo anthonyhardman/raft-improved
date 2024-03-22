@@ -22,14 +22,14 @@ public class Tests
     }
 
     [Test]
-    public void CorrectStateMachine()
+    public async Task CorrectStateMachine()
     {
         RaftNode node1, node2, node3;
         ThreeNodeSetup(out node1, out node2, out node3);
 
         node1.Role = RaftRole.Leader;
-        node2.MostRecentLeader = node1.Id;
-        node3.MostRecentLeader = node1.Id;
+        node2.MostRecentLeaderId = node1.Id;
+        node3.MostRecentLeaderId = node1.Id;
         var request = new CompareAndSwapRequest
         {
             Key = "key",
@@ -37,33 +37,33 @@ public class Tests
             NewValue = "new value",
             Version = 0
         };
-        node1.CompareAndSwap(request);
+        await node1.CompareAndSwap(request);
         node1.DoAction(null, null);
 
         node1.StateMachine.Count.Should().Be(1);
-        node1.StateMachine["key"].term.Should().Be(0);
+        node1.StateMachine["key"].logIndex.Should().Be(0);
         node1.StateMachine["key"].value.Should().Be("new value");
 
         node2.StateMachine.Count.Should().Be(1);
-        node2.StateMachine["key"].term.Should().Be(0);
+        node2.StateMachine["key"].logIndex.Should().Be(0);
         node2.StateMachine["key"].value.Should().Be("new value");
 
         node3.StateMachine.Count.Should().Be(1);
-        node3.StateMachine["key"].term.Should().Be(0);
+        node3.StateMachine["key"].logIndex.Should().Be(0);
         node3.StateMachine["key"].value.Should().Be("new value");
 
         Assert.Pass();
     }
 
     [Test]
-    public void CorrectCommitIndex()
+    public async Task CorrectCommitIndex()
     {
         RaftNode node1, node2, node3;
         ThreeNodeSetup(out node1, out node2, out node3);
 
         node1.Role = RaftRole.Leader;
-        node2.MostRecentLeader = node1.Id;
-        node3.MostRecentLeader = node1.Id;
+        node2.MostRecentLeaderId = node1.Id;
+        node3.MostRecentLeaderId = node1.Id;
         var request = new CompareAndSwapRequest
         {
             Key = "key",
@@ -71,7 +71,7 @@ public class Tests
             NewValue = "new value",
             Version = 0
         };
-        node1.CompareAndSwap(request);
+        await node1.CompareAndSwap(request);
         node1.DoAction(null, null);
 
         node1.CommitIndex.Should().Be(0);
@@ -95,14 +95,14 @@ public class Tests
     }
 
     [Test]
-    public void LogIsCorrect()
+    public async Task LogIsCorrect()
     {
         RaftNode node1, node2, node3;
         ThreeNodeSetup(out node1, out node2, out node3);
 
         node1.Role = RaftRole.Leader;
-        node2.MostRecentLeader = node1.Id;
-        node3.MostRecentLeader = node1.Id;
+        node2.MostRecentLeaderId = node1.Id;
+        node3.MostRecentLeaderId = node1.Id;
         var request = new CompareAndSwapRequest
         {
             Key = "key",
@@ -110,7 +110,7 @@ public class Tests
             NewValue = "new value",
             Version = 0
         };
-        node1.CompareAndSwap(request);
+        await node1.CompareAndSwap(request);
         node1.DoAction(null, null);
 
         node1.Log.Count.Should().Be(1);
@@ -303,8 +303,8 @@ public class Tests
         ThreeNodeSetup(out node1, out node2, out node3);
 
         node1.Role = RaftRole.Leader;
-        node2.MostRecentLeader = node1.Id;
-        node3.MostRecentLeader = node1.Id;
+        node2.MostRecentLeaderId = node1.Id;
+        node3.MostRecentLeaderId = node1.Id;
         await node1.CompareAndSwap(new CompareAndSwapRequest
         {
             Key = "key",
@@ -371,8 +371,8 @@ public class Tests
         ThreeNodeSetup(out node1, out node2, out node3);
 
         node1.Role = RaftRole.Leader;
-        node2.MostRecentLeader = node1.Id;
-        node3.MostRecentLeader = node1.Id;
+        node2.MostRecentLeaderId = node1.Id;
+        node3.MostRecentLeaderId = node1.Id;
         await node1.CompareAndSwap(new CompareAndSwapRequest
         {
             Key = "key",

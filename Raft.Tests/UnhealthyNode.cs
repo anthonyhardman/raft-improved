@@ -5,14 +5,14 @@ namespace Raft.Tests;
 
 public class UnhealthyNode : IRaftNode
 {
-    public string Id => throw new NotImplementedException();
+    public string Id => "UnhealthyNode";
 
     public Task<AppendEntriesResponse> AppendEntries(AppendEntriesRequest request)
     {
         throw new NotImplementedException();
     }
 
-    public Task<bool> CompareAndSwap(CompareAndSwapRequest request)
+    public Task<CompareAndSwapResponse> CompareAndSwap(CompareAndSwapRequest request)
     {
         throw new NotImplementedException();
     }
@@ -27,17 +27,17 @@ public class UnhealthyNode : IRaftNode
         throw new NotImplementedException();
     }
 
+    public Task<string> MostRecentLeader()
+    {
+        throw new NotImplementedException();
+    }
+
     public Task<RequestVoteResponse> RequestVote(RequestVoteRequest request)
     {
         throw new NotImplementedException();
     }
 
-    public Task<string> StrongGet(string key)
-    {
-        throw new NotImplementedException();
-    }
-
-    Task<StrongGetResponse> IRaftNode.StrongGet(string key)
+    public Task<StrongGetResponse> StrongGet(string key)
     {
         throw new NotImplementedException();
     }

@@ -88,7 +88,8 @@ public static class GrpcModelExtentsions
     {
         return new StrongGetResponse
         {
-            Value = response.Value
+            Value = response.Value,
+            Version = response.Version
         };
     }
 
@@ -125,6 +126,8 @@ public static class GrpcModelExtentsions
         return new CompareAndSwapResponse
         {
             Success = response.Success,
+            Version = response.Version,
+            Value = response.Value
         };
     }
 }

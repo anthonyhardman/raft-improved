@@ -11,4 +11,6 @@ public class CompareAndSwapRequest
 public class CompareAndSwapResponse
 {
     public bool Success { get; set; }
+    public int Version { get; set; }
+    public string Value { get; set; }
 }

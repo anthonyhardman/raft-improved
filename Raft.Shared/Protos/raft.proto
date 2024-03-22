@@ -10,7 +10,7 @@ service RaftNode {
   rpc StrongGet(StrongGetRequest) returns (StrongGetResponse);
   rpc EventualGet(EventualGetRequest) returns (EventualGetResponse);
   rpc CompareAndSwap(CompareAndSwapRequest) returns (CompareAndSwapResponse);
-  rpc IsMostRecentLeader(IsMostRecentLeaderRequest) returns (IsMostRecentLeaderResponse);
+  rpc MostRecentLeader(MostRecentLeaderRequest) returns (MostRecentLeaderResponse);
 }
 
 message LogEntry {
@@ -71,12 +71,14 @@ message CompareAndSwapRequest {
 
 message CompareAndSwapResponse {
   bool success = 1;
+  int32 version = 2;
+  string value = 3;
 }
 
-message IsMostRecentLeaderRequest {
+message MostRecentLeaderRequest {
+
+}
+
+message MostRecentLeaderResponse {
   string leaderId = 1;
-}
-
-message IsMostRecentLeaderResponse {
-  bool isMostRecentLeader = 1;
 }

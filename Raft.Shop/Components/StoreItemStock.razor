@@ -1,0 +1,78 @@
+﻿<h3>StoreItemStock</h3>
+
+@if (ShowError)
+{
+    <div class="alert alert-danger d-flex justify-content-start" role="alert">
+        <button class="btn btn-outline-danger" @onclick="() => ShowError = false">X</button>
+        <div class="fw-bold ms-3 me-auto my-auto">
+            An error occurred while processing your request. Please try again.
+        </div>
+    </div>
+}
+
+<div class="border p-2 my-2">
+    <div class="row">
+        <p class="col">@Item.Name</p>
+        <p class="col">Price: $@Item.Price</p>
+        <p class="col">Stock: @Item.Stock</p>
+    </div>
+    <div class="d-flex justify-content-end">
+        <EditForm Model="@this">
+            <DataAnnotationsValidator />
+            <ValidationSummary />
+            <label class="form-label">
+                <InputNumber @bind-Value="AddOrRemoveAmount" class="form-control my-auto" />
+            </label>
+            <button type="submit" class="btn btn-primary my-auto" @onclick="AddStock"
+                disabled="@disableDepositAndWithdrawButtons">Add</button>
+            <button type="button" class="btn btn-primary my-auto" @onclick="RemoveStock"
+                disabled="@disableDepositAndWithdrawButtons">Remove</button>
+        </EditForm>
+    </div>
+</div>
+
+@code {
+    [Inject] public InventoryService InventoryService { get; set; }
+    [Parameter] public StoreItem Item { get; set; }
+
+    private int AddOrRemoveAmount { get; set; }
+    private bool disableDepositAndWithdrawButtons { get; set; } = false;
+    public bool ShowError { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        (Item.Stock, Item.StockVersion) = await InventoryService.GetStoreItemStock(Item.Name);
+    }
+
+    private async Task AddStock()
+    {
+        if (AddOrRemoveAmount > 0)
+        {
+            disableDepositAndWithdrawButtons = true;
+            var success = await InventoryService.AddOrRemoveStock(Item.Name, Item.Stock, Item.StockVersion, AddOrRemoveAmount);
+            (Item.Stock, Item.StockVersion) = await InventoryService.GetStoreItemStock(Item.Name);
+            AddOrRemoveAmount = 0;
+            disableDepositAndWithdrawButtons = false;
+            if (!success)
+            {
+                ShowError = true;
+            }
+        }
+    }
+
+    private async Task RemoveStock()
+    {
+        if (AddOrRemoveAmount > 0)
+        {
+            disableDepositAndWithdrawButtons = true;
+            var success = await InventoryService.AddOrRemoveStock(Item.Name, Item.Stock, Item.StockVersion, -AddOrRemoveAmount);
+            (Item.Stock, Item.StockVersion) = await InventoryService.GetStoreItemStock(Item.Name);
+            AddOrRemoveAmount = 0;
+            disableDepositAndWithdrawButtons = false;
+            if (!success)
+            {
+                ShowError = true;
+            }
+        }
+    }
+}

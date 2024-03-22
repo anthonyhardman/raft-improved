@@ -36,8 +36,8 @@ public class RaftNode : IRaftNode
     public List<int> MatchIndex { get; set; }
     public Timer ActionTimer { get; set; }
     private string StateFile => $"raft-data/state.json";
-    public ConcurrentDictionary<string, (int term, string value)> StateMachine { get; set; }
-    public string MostRecentLeader { get; set; }
+    public ConcurrentDictionary<string, (int logIndex, string value)> StateMachine { get; set; }
+    public string MostRecentLeaderId { get; set; }
 
     private readonly AsyncRetryPolicy _retryPolicy = Policy.Handle<Exception>().RetryAsync(3, (exception, retryCount) =>
         {
@@ -91,7 +91,7 @@ public class RaftNode : IRaftNode
             return 50;
         }
 
-        return new Random().Next(150, 300);
+        return new Random().Next(500, 1000);
     }
 
     private RaftState LoadState()
@@ -127,7 +127,7 @@ public class RaftNode : IRaftNode
 
         ResetActionTimer();
 
-        MostRecentLeader = request.LeaderId;
+        MostRecentLeaderId = request.LeaderId;
 
         if (request.Term > CurrentTerm)
         {
@@ -174,7 +174,7 @@ public class RaftNode : IRaftNode
             var prevLogIndex = nextIndex - 1;
             var prevLogTerm = prevLogIndex >= 0 ? Log[prevLogIndex].Term : 0;
 
-            Console.WriteLine($"{Id} sending heartbeat to {follower.Id} nextIndex: {nextIndex} prevLogIndex: {prevLogIndex} prevLogTerm: {prevLogTerm}");   
+            Console.WriteLine($"{Id} sending heartbeat to {follower.Id} nextIndex: {nextIndex} prevLogIndex: {prevLogIndex} prevLogTerm: {prevLogTerm}");
 
             try
             {
@@ -208,7 +208,7 @@ public class RaftNode : IRaftNode
                         }
                         else if (NextIndex[i] > 0)
                         {
-                            
+
                             NextIndex[i]--;
                         }
                     });
@@ -237,35 +237,59 @@ public class RaftNode : IRaftNode
         {
             LastApplied++;
             var entry = Log[LastApplied];
-            StateMachine.AddOrUpdate(entry.Key, (entry.Term, entry.Value), (key, oldValue) => (entry.Term, entry.Value));
+            Console.WriteLine($"{Id} updating state machine with {entry.Key} {entry.Value}");
+            StateMachine.AddOrUpdate(entry.Key, (LastApplied, entry.Value), (key, oldValue) => (LastApplied, entry.Value));
         }
     }
 
-    public async Task<bool> CompareAndSwap(CompareAndSwapRequest request)
+    public async Task<CompareAndSwapResponse> CompareAndSwap(CompareAndSwapRequest request)
     {
         if (Role != RaftRole.Leader || !await MajorityOfPeersHaveMeAsLeader())
         {
-            return false;
+            var msg = $"{Id} is not leader or does not have majority of peers as leader";
+            Console.WriteLine(msg);
+            return new CompareAndSwapResponse
+            {
+                Success = false,
+                Version = int.MinValue,
+                Value = msg
+            };
         }
 
         if (StateMachine.TryGetValue(request.Key, out var value))
         {
-            if (value.term == request.Version && value.value == request.ExpectedValue)
+            if (value.logIndex == request.Version && value.value == request.ExpectedValue)
             {
                 Log.Append(new LogEntry(CurrentTerm, request.Key, request.NewValue));
                 SendHeartbeat();
-                return true;
+                return new CompareAndSwapResponse
+                {
+                    Success = true,
+                    Version = value.logIndex,
+                    Value = value.value
+                };
             }
             else
             {
-                return false;
+                Console.WriteLine($"Key: {request.Key} has version {value.logIndex} expected {request.Version} and value {value.value} expected {request.ExpectedValue}");
+                return new CompareAndSwapResponse
+                {
+                    Success = false,
+                    Version = value.logIndex,
+                    Value = value.value
+                };
             }
         }
         else
         {
             Log.Append(new LogEntry(CurrentTerm, request.Key, request.NewValue));
             SendHeartbeat();
-            return true;
+            return new CompareAndSwapResponse
+            {
+                Success = true,
+                Version = 0,
+                Value = request.NewValue
+            };
         }
     }
 
@@ -329,6 +353,7 @@ public class RaftNode : IRaftNode
         {
             Console.WriteLine($"{Id} won election Num Votes: {votes} peers: {Peers.Count}");
             Role = RaftRole.Leader;
+            MostRecentLeaderId = Id;
             await SendHeartbeat();
             return;
         }
@@ -398,15 +423,17 @@ public class RaftNode : IRaftNode
         {
             return new StrongGetResponse
             {
-                Value = null,
-                Version = -1
+                Value = "Node is not leader or does not have majority of peers as leader",
+                Version = int.MinValue
             };
         }
+        
+        Console.WriteLine($"{Id} StrongGet {key} value: {value.value} version: {value.logIndex}");
 
         return new StrongGetResponse
         {
             Value = value.value,
-            Version = value.term
+            Version = value.logIndex
         };
     }
 
@@ -419,19 +446,19 @@ public class RaftNode : IRaftNode
 
     public async Task<bool> IsMostRecentLeader(string leaderId)
     {
-        return MostRecentLeader == leaderId;
+        return MostRecentLeaderId == leaderId;
     }
 
     public async Task<bool> MajorityOfPeersHaveMeAsLeader()
     {
-        var count = 0;
+        var count = 1;
         foreach (var peer in Peers)
         {
             try
             {
                 await _retryPolicy.ExecuteAsync(async () =>
                 {
-                    if (await peer.IsMostRecentLeader(Id))
+                    if (await peer.MostRecentLeader() == Id)
                     {
                         count++;
                     }
@@ -441,13 +468,18 @@ public class RaftNode : IRaftNode
             {
                 Console.WriteLine($"Error checking if peer has me as leader: {e.Message}");
             }
+        }
 
-            if (count > Peers.Count / 2)
-            {
-                return true;
-            }
+        if (count > Peers.Count / 2)
+        {
+            return true;
         }
 
         return false;
+    }
+
+    public async Task<string> MostRecentLeader()
+    {
+        return MostRecentLeaderId;
     }
 }

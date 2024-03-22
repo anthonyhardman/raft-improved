@@ -44,7 +44,7 @@ public class GrpcRaftNode : IRaftNode
         }
     }
 
-    public async Task<bool> CompareAndSwap(CompareAndSwapRequest request)
+    public async Task<CompareAndSwapResponse> CompareAndSwap(CompareAndSwapRequest request)
     {
         try
         {
@@ -53,14 +53,15 @@ public class GrpcRaftNode : IRaftNode
                 var client = new Grpc.RaftNode.RaftNodeClient(_channel);
                 var rpcRequest = request.ToGrpc();
                 var response = await client.CompareAndSwapAsync(rpcRequest);
-                return response.Success;
+                return response.ToRaft();
 
             });
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Error making compare and swap request to {Id}");
-            return false;
+            var msg = $"Error making compare and swap request to {Id}";
+            Console.WriteLine(msg);
+            return new CompareAndSwapResponse { Success = false, Version = int.MinValue, Value = $"{msg} {e.Message}" };
         }
     }
 
@@ -119,25 +120,25 @@ public class GrpcRaftNode : IRaftNode
         catch (Exception e)
         {
             Console.WriteLine($"Error with strong get request to {Id} ");
-            return new StrongGetResponse { Value = null, Version = 0 };
+            return new StrongGetResponse { Value = null, Version = int.MinValue };
         }
     }
 
-    public async Task<bool> IsMostRecentLeader(string leaderId)
+    public async Task<string> MostRecentLeader()
     {
         try
         {
             return await _retryPolicy.ExecuteAsync(async () =>
             {
                 var client = new Grpc.RaftNode.RaftNodeClient(_channel);
-                var response = await client.IsMostRecentLeaderAsync(new Grpc.IsMostRecentLeaderRequest { LeaderId = leaderId });
-                return response.IsMostRecentLeader;
+                var response = await client.MostRecentLeaderAsync(new Grpc.MostRecentLeaderRequest());
+                return response.LeaderId;
             });
         }
         catch (Exception e)
         {
-            Console.WriteLine($"Error with IsMostRecentLeader request for {leaderId}");
-            return false;
+            Console.WriteLine($"Error with MostRecentLeader request for {Id}");
+            return (null);
         }
     }
 }

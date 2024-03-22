@@ -1,0 +1,20 @@
+﻿@page "/inventory"
+@rendermode InteractiveServer
+
+<h3>Inventory</h3>
+
+@foreach (var item in inventory)
+{
+    <StoreItemStock Item="@item" />
+}
+
+@code {
+    [Inject] InventoryService InventoryService { get; set; }
+
+    private List<StoreItem> inventory = new List<StoreItem>();
+
+    protected override async Task OnInitializedAsync()
+    {
+        inventory = InventoryService.GetStoreItems();
+    }
+}
