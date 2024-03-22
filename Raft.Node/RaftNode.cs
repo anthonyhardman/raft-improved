@@ -222,7 +222,7 @@ public class RaftNode : IRaftNode
         for (var newIndex = Log.Count - 1; newIndex > CommitIndex; newIndex--)
         {
             var matchCount = MatchIndex.Count(matchIndex => matchIndex >= newIndex);
-            if (matchCount > Peers.Count / 2 && Log[newIndex].Term == CurrentTerm)
+            if ((matchCount + 1) > Peers.Count / 2 && Log[newIndex].Term == CurrentTerm)
             {
                 CommitIndex = newIndex;
                 UpdateStateMachine();
@@ -419,15 +419,24 @@ public class RaftNode : IRaftNode
 
     public async Task<StrongGetResponse> StrongGet(string key)
     {
-        if (Role != RaftRole.Leader || !await MajorityOfPeersHaveMeAsLeader() || !StateMachine.TryGetValue(key, out var value))
+        if (Role != RaftRole.Leader || !await MajorityOfPeersHaveMeAsLeader())
         {
             return new StrongGetResponse
             {
-                Value = "Node is not leader or does not have majority of peers as leader",
+                Value = "NOT_LEADER",
                 Version = int.MinValue
             };
         }
-        
+
+        if (!StateMachine.TryGetValue(key, out var value))
+        {
+            return new StrongGetResponse
+            {
+                Value = "NOT_FOUND",
+                Version = int.MinValue
+            };
+        }
+
         Console.WriteLine($"{Id} StrongGet {key} value: {value.value} version: {value.logIndex}");
 
         return new StrongGetResponse

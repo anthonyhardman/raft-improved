@@ -19,7 +19,7 @@ public class GrpcRaftNode : IRaftNode
         _address = address;
         Console.WriteLine($"Creating channel for address: {_address}");
         _channel = GrpcChannel.ForAddress(_address);
-        _retryPolicy = Policy.Handle<Exception>().RetryAsync(3, (exception, retryCount) =>
+        _retryPolicy = Policy.Handle<Exception>().RetryAsync(1, (exception, retryCount) =>
         {
             _channel = GrpcChannel.ForAddress(_address);
         });
@@ -40,6 +40,7 @@ public class GrpcRaftNode : IRaftNode
         catch (Exception e)
         {
             Console.WriteLine($"Error Appending Entries from {request.LeaderId} to {Id}");
+            Console.WriteLine(e.Message);
             return new AppendEntriesResponse { Term = 0, Success = false };
         }
     }

@@ -19,12 +19,29 @@ public class StorageController : ControllerBase
   [HttpGet("strong")]
   public async Task<ActionResult<StrongGetResponse>> StrongGet(string key)
   {
-    var node = GetRandomNode();
-    var leaderId = await node.MostRecentLeader();
-    var leader = _raftNodes.FirstOrDefault(x => x.Id == leaderId);
+    var actualLeaderFound = false;
 
-    var response = await leader.StrongGet(key);
-    return Ok(response);
+    while (!actualLeaderFound)
+    {
+      var node = GetRandomNode();
+      var leaderId = await node.MostRecentLeader();
+      var leader = _raftNodes.FirstOrDefault(x => x.Id == leaderId);
+
+      var response = await leader.StrongGet(key);
+
+      if (response.Version == int.MinValue && response.Value == "NOT_FOUND")
+      {
+        return NotFound("Key not found");
+      }
+
+      if (response.Version >= 0)
+      {
+        actualLeaderFound = true;
+        return Ok(response);
+      }
+    }
+
+    return StatusCode(500, "Failed to find leader");
   }
 
   [HttpGet("eventual")]
