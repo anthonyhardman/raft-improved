@@ -1,54 +1,67 @@
 version: '3'
 
 services:
-  gateway:
-    container_name: ah-gateway
-    image: ah-gateway:latest
+  ah-shop:
+    container_name: ah-shop
     build:
       context: ..
-      dockerfile: ../Raft.Gateway/Dockerfile
+      dockerfile: ../Raft.Shop/Dockerfile
+    image: ah-shop
+    ports:
+      - 344:8080
+    profiles:
+      - server-5
+    environment:
+      - RAFT_GATEWAY_URL=http://ah-gateway:8080
+
+  ah-gateway:
+    container_name: ah-ah-gateway
+    build:
+      context: ..
+      dockerfile: ../Raft.ah-Gateway/Dockerfile
+    image: ah-ah-gateway
     ports:
       - 345:8080
     environment:
-      - NODE_ADDRESSES=http://node-1:8080,http://node-2:8080,http://144.17.92.14:349
-      - NODE_IDS=node-1,node-2,node-3
+      - NODE_ADDRESSES=http://ah-node-1:8080,http://ah-node-2:8080,http://144.17.92.14:349
+      - NODE_IDS=ah-node-1,node-2,node-3
     profiles:
       - server-5
 
-  node-1:
+  ah-node-1:
     container_name: ah-node-1
-    image: ah-node:latest
     build:
       context: ..
       dockerfile: ../Raft.Node/Dockerfile
+    image: ah-node
     environment:
-        - NODE_ID=node-1
-        - PEER_ADDRESSES=http://node-2:8080,http://144.17.92.14:348
+        - NODE_ID=ah-node-1
+        - PEER_ADDRESSES=http://ah-node-2:8080,http://144.17.92.14:348
         - PEER_IDS=node-2,node-3
     ports:
       - 346:8080  
     profiles:
       - server-5
 
-  node-2:
+  ah-node-2:
     container_name: ah-node-2
-    image: ah-node:latest
     environment:
         - NODE_ID=node-2
-        - PEER_ADDRESSES=http://node-1:8080,http://144.17.92.14:348
+        - PEER_ADDRESSES=http://ah-node-1:8080,http://144.17.92.14:348
         - PEER_IDS=node-2,node-3
+    image: ah-node
     ports:
       - 347:8080  
     profiles:
       - server-5
 
-  node-3:
+  ah-node-3:
     container_name: ah-node-3
-    image: ah-node:latest
     environment:
         - NODE_ID=node-3
         - PEER_ADDRESSES=http://144.17.92.15:346,http://144.17.92.15:347
-        - PEER_IDS=node-1,node-2
+        - PEER_IDS=ah-node-1,node-2
+    image: ah-node
     ports:
       - 348:8080  
     profiles:
