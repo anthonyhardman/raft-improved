@@ -70,5 +70,4 @@ services:
 
 networks:
   default:
-    internal: true
     name: ah-raft-network
