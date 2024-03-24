@@ -1,0 +1,33 @@
+﻿@page "/orders"
+@rendermode InteractiveServer
+
+<h3>Orders</h3>
+<h2>Pending Orders:</h2>
+@foreach (var order in PendingOrdersList)
+{
+    <OrderView OrderId="@order" />
+}
+<h2>Rejected Orders:</h2>
+@foreach (var order in RejectedOrdersList)
+{
+    <OrderView OrderId="@order" />
+}
+<h2>Processed Orders:</h2>
+@foreach (var order in ProcessedOrdersList)
+{
+    <OrderView OrderId="@order" />
+}
+
+@code {
+    [Inject] OrderService OrderService {get; set;}
+    private List<string> PendingOrdersList {get; set;} = new();
+    private List<string> ProcessedOrdersList {get; set;} = new();
+    private List<string> RejectedOrdersList {get; set;} = new();
+    
+    protected override async Task OnInitializedAsync()
+    {
+        (PendingOrdersList, _) = await OrderService.GetPendingOrdersList();
+        (ProcessedOrdersList, _) = await OrderService.GetProcessedOrdersList();
+        (RejectedOrdersList, _) = await OrderService.GetRejectedOrdersList();
+    }
+}

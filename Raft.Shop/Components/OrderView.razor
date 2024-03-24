@@ -1,0 +1,46 @@
+﻿@if (Order == null)
+{
+    <p>Loading...</p>
+    return;
+}
+
+<div class="border rounded p-3 bg-light my-2">
+    <p class="mb-1"><strong>Order Id:</strong> @OrderId</p>
+    <p class="mb-1"><strong>Ordered By:</strong> @Order.UserId</p>
+    <p class="mb-1"><strong>Order Status:</strong> <span class="badge bg-info text-dark">@OrderStatus</span></p>
+    <p class="mb-1"><strong>Order Total:</strong> @Order.Total.ToString("C2", new
+        System.Globalization.CultureInfo("ja-JP"))</p>
+    <p class="mb-2"><strong>Order Items:</strong></p>
+    <ul class="list-group list-group-flush">
+        @foreach (var item in Order.Items)
+        {
+            <li class="list-group-item">@item.ItemName - @item.Quantity x @item.Price.ToString("C2", new
+            System.Globalization.CultureInfo("ja-JP"))</li>
+        }
+    </ul>
+    @if (OrderStatus == "pending")
+    {
+        <button class="btn btn-primary mt-3 d-block w-100" @onclick="ProcessOrder">
+            <i class="bi bi-gear"></i> Process Order
+        </button>
+    }
+</div>
+
+@code {
+    [Inject] public OrderService OrderService { get; set; }
+    [Parameter] public string OrderId { get; set; }
+
+    private Order Order { get; set; }
+    private string OrderStatus { get; set; }
+
+    protected override async Task OnInitializedAsync()
+    {
+        (Order, OrderStatus) = await OrderService.GetOrder(OrderId);
+    }
+
+    private async Task ProcessOrder()
+    {
+        Console.WriteLine("Processing order...");
+        await OrderService.ProcessOrder(Order);
+    }
+}

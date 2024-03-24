@@ -1,0 +1,57 @@
+﻿@using Microsoft.AspNetCore.Components.Server.ProtectedBrowserStorage
+
+@if (!UsernameEntered || string.IsNullOrEmpty(Username))
+{
+    <EditForm Model="@this" OnSubmit="HandleUsernameSubmit">
+    <DataAnnotationsValidator />
+    <ValidationSummary />
+    <div class="form-group">
+        <label for="username" class="form-label">Enter your username:
+            <InputText id="username" class="form-control" @bind-Value="Username" />
+        </label>
+    </div>
+    <button type="submit" class="btn btn-primary">Login</button>
+</EditForm>
+}
+else
+{
+    <CascadingValue Value="@Username">
+    @ChildContent
+</CascadingValue>
+}
+
+@code {
+    [Inject] private ProtectedSessionStorage SessionStorage { get; set; }
+    [Parameter] public RenderFragment ChildContent { get; set; }
+    public string Username { get; set; }
+    private bool UsernameEntered { get; set; } = false;
+    private async Task HandleUsernameSubmit()
+    {
+        if (!string.IsNullOrEmpty(Username))
+        {
+            await SessionStorage.SetAsync("username", Username);
+            UsernameEntered = true;
+        }
+    }
+
+    protected override async Task OnAfterRenderAsync(bool firstRender)
+    {
+        if (firstRender)
+        {
+            try
+            {
+                var usernameResult = await SessionStorage.GetAsync<string>("username");
+                if (usernameResult.Success && usernameResult.Value != null)
+                {
+                    Username = usernameResult.Value;
+                    UsernameEntered = !string.IsNullOrEmpty(Username);
+                    StateHasChanged();
+                }
+            }
+            catch (Exception)
+            {
+                Console.WriteLine("Failed to retrieve username from session storage.");
+            }
+        }
+    }
+}

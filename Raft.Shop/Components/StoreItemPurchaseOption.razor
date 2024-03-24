@@ -1,0 +1,53 @@
+﻿<div class="row border rounded p-2 my-2">
+    <div class="col">
+        <p class="mb-0">@Item.Name</p>
+        <p class="mb-0">@Item.Price.ToString("C2", new System.Globalization.CultureInfo("ja-JP"))</p>
+    </div>
+    <div class="col d-flex align-items-center justify-content-end">
+        @if (Item.Stock > 0)
+        {
+            <EditForm Model="@this" class="d-flex align-items-center" OnSubmit="AddToCart">
+                <InputSelect @bind-Value="Quantity" class="form-select me-2">
+                    @for (int i = 1; i <= 10; i++)
+                    {
+                        <option value="@i">QTY: @i</option>
+                    }
+                </InputSelect>
+                <button class="btn btn-outline-primary" type="submit">
+                    <i class="bi bi-cart-plus" />
+                </button>
+            </EditForm>
+        }
+        else
+        {
+            <p class="text-danger mb-0">Out of stock</p>
+        }
+    </div>
+</div>
+
+@code {
+    [Inject] public InventoryService InventoryService { get; set; }
+    [Parameter] public StoreItem Item { get; set; }
+    [Parameter] public Action<OrderItem> AddToCartCallback { get; set; }
+    private int Quantity { get; set; } = 1;
+
+    protected override async Task OnInitializedAsync()
+    {
+        (Item.Stock, Item.StockVersion) = await InventoryService.GetStoreItemStock(Item.Name);
+    }
+
+    private void AddToCart()
+    {
+        if (Quantity > 0)
+        {
+            var orderItem = new OrderItem
+                {
+                    ItemName = Item.Name,
+                    Price = Item.Price,
+                    Quantity = Quantity
+                };
+
+            AddToCartCallback.Invoke(orderItem);
+        }
+    }
+}

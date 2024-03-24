@@ -1,0 +1,70 @@
+﻿<h3>Shop</h3>
+
+<div class="row">
+    <div class="col">
+        @foreach (var item in storeItems)
+        {
+            <StoreItemPurchaseOption Item="@item" AddToCartCallback="AddToCart" />
+        }
+    </div>
+    <div class="col border rounded m-2 p-2 d-flex flex-column">
+        <div class="mb-auto">
+            @foreach (var item in Cart)
+            {
+                <div class="d-flex justify-content-between align-items-center">
+                    <span class="fw-bold">@item.ItemName</span>
+                    <span>@item.Quantity x @item.Price.ToString("C2", new System.Globalization.CultureInfo("ja-JP"))</span>
+                </div>
+            }
+        </div>
+        <hr />
+        <div class="d-flex justify-content-between align-items-center">
+            <span class="fw-bold">Total:</span>
+            <span>@Total</span>
+        </div>
+        <button class="btn btn-primary mt-2" @onclick="PlaceOrder" disabled="@disablePlaceOrderButton">Place Order</button>
+    </div>
+</div>
+
+@code {
+    [Inject] InventoryService InventoryService { get; set; }
+    [Inject] OrderService OrderService { get; set; }
+    [CascadingParameter] public string Username { get; set; }
+    private List<StoreItem> storeItems { get; set; }
+    private List<OrderItem> Cart { get; set; } = new();
+    private string Total => Cart.Sum(item => item.Quantity * item.Price).ToString("C2", new
+    System.Globalization.CultureInfo("ja-JP"));
+    private bool disablePlaceOrderButton => Cart.Count == 0;
+
+    protected override async Task OnInitializedAsync()
+    {
+        storeItems = InventoryService.GetStoreItems();
+    }
+
+    public void AddToCart(OrderItem item)
+    {
+        var existingItem = Cart.FirstOrDefault(x => x.ItemName == item.ItemName);
+        if (existingItem != null)
+        {
+            existingItem.Quantity += item.Quantity;
+            StateHasChanged();
+        }
+        else
+        {
+            Cart.Add(item);
+            StateHasChanged();
+        }
+    }
+
+    public async Task PlaceOrder()
+    {
+        var order = new Order{
+            UserId = Username,
+            Items = Cart
+        };
+
+        await OrderService.PlaceOrder(order);
+
+        Cart.Clear();
+    }
+}
