@@ -16,7 +16,7 @@ services:
     container_name: ah-ah-gateway
     build:
       context: ..
-      dockerfile: RaftGateway/Dockerfile
+      dockerfile: Raft.Gateway/Dockerfile
     image: ah-ah-gateway
     ports:
       - 345:8080
