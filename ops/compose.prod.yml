@@ -22,7 +22,7 @@ services:
       - 345:8080
     environment:
       - NODE_ADDRESSES=http://ah-node-1:8080,http://ah-node-2:8080,http://144.17.92.14:349
-      - NODE_IDS=ah-node-1,node-2,node-3
+      - NODE_IDS=ah-node-1,ah-node-2,ah-node-3
     profiles:
       - server-5
 
@@ -35,7 +35,7 @@ services:
     environment:
       - NODE_ID=ah-node-1
       - PEER_ADDRESSES=http://ah-node-2:8080,http://144.17.92.14:348
-      - PEER_IDS=node-2,node-3
+      - PEER_IDS=ah-node-2,ah-node-3
     ports:
       - 346:8080
     profiles:
@@ -46,7 +46,7 @@ services:
     environment:
       - NODE_ID=node-2
       - PEER_ADDRESSES=http://ah-node-1:8080,http://144.17.92.14:348
-      - PEER_IDS=node-2,node-3
+      - PEER_IDS=ah-node-2,ah-node-3
     image: ah-node
     ports:
       - 347:8080
@@ -58,7 +58,7 @@ services:
     environment:
       - NODE_ID=node-3
       - PEER_ADDRESSES=http://144.17.92.15:346,http://144.17.92.15:347
-      - PEER_IDS=ah-node-1,node-2
+      - PEER_IDS=ah-node-1,ah-node-2
     build:
       context: ..
       dockerfile: Raft.Node/Dockerfile
