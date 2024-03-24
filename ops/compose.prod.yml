@@ -44,7 +44,7 @@ services:
   ah-node-2:
     container_name: ah-node-2
     environment:
-      - NODE_ID=node-2
+      - NODE_ID=ah-node-2
       - PEER_ADDRESSES=http://ah-node-1:8080,http://144.17.92.14:348
       - PEER_IDS=ah-node-2,ah-node-3
     image: ah-node
