@@ -13,11 +13,11 @@ services:
       - RAFT_GATEWAY_URL=http://ah-gateway:8080
 
   ah-gateway:
-    container_name: ah-ah-gateway
+    container_name: ah-gateway
     build:
       context: ..
-      dockerfile: Raft.Gateway/Dockerfile
-    image: ah-ah-gateway
+      dockerfile: Raft.GateWay/Dockerfile
+    image: ah-gateway
     ports:
       - 345:8080
     environment:
