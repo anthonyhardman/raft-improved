@@ -9,22 +9,36 @@
 <div class="nav-scrollable" onclick="document.querySelector('.navbar-toggler').click()">
     <nav class="flex-column">
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="balance">
-                <span class="bi bi-plus-square-fill-nav-menu" aria-hidden="true"></span> Balance
+            <NavLink class="nav-link" href="" Match="NavLinkMatch.All">
+                <span>
+                    <i class="bi bi-cart my-auto fs-4 fw-bold" aria-hidden="true" />
+                </span>
+                Shop
             </NavLink>
         </div>
-
+        <div class="nav-item px-3">
+            <NavLink class="nav-link" href="balance">
+                <span>
+                    <i class="bi bi-currency-yen my-auto fs-4 fw-bold" aria-hidden="true" />
+                </span>
+                Balance
+            </NavLink>
+        </div>
         <div class="nav-item px-3">
             <NavLink class="nav-link" href="inventory">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Inventory
+                <span>
+                    <i class="bi bi-journal-plus my-auto fs-4 fw-bold" aria-hidden="true" />
+                </span>
+                Inventory
             </NavLink>
         </div>
-
         <div class="nav-item px-3">
-            <NavLink class="nav-link" href="order">
-                <span class="bi bi-list-nested-nav-menu" aria-hidden="true"></span> Order
+            <NavLink class="nav-link" href="orders">
+                <span>
+                    <i class="bi bi-bezier2 my-auto fs-4 fw-bold" aria-hidden="true" />
+                </span>
+                Orders
             </NavLink>
         </div>
     </nav>
 </div>
-

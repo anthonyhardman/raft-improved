@@ -15,6 +15,7 @@ builder.Services.AddHttpClient("RaftClient", client =>
 builder.Services.AddScoped<RaftService>();
 builder.Services.AddScoped<BalanceService>();
 builder.Services.AddScoped<InventoryService>();
+builder.Services.AddScoped<OrderService>();
 
 var app = builder.Build();
 

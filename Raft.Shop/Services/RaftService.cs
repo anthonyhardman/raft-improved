@@ -12,12 +12,22 @@ public class RaftService
         _httpClient = httpClientFactory.CreateClient("RaftClient");
     }
 
-    public async Task<(T value, int version)> StrongGet<T>(string key)
+    
+    public async Task<(string value, int version)> StrongGet(string key)
     {
         var response = await _httpClient.GetFromJsonAsync<StrongGetResponse>($"api/storage/strong?key={key}");
 
-        Console.WriteLine($"StrongGet: {response?.Value}");
-        Console.WriteLine($"StrongGet: {response?.Version}");
+        if (response?.Value == null)
+        {
+            throw new Exception("Value not found");
+        }
+
+        return (response.Value, response.Version);
+    }
+
+    public async Task<(T value, int version)> StrongGet<T>(string key)
+    {
+        var response = await _httpClient.GetFromJsonAsync<StrongGetResponse>($"api/storage/strong?key={key}");
 
         if (response?.Value == null)
         {
@@ -57,5 +67,12 @@ public class RaftService
         var casResponse = await response.Content.ReadFromJsonAsync<CompareAndSwapResponse>();
 
         return casResponse.Success;
+    }
+
+    public async Task<bool> CompareAndSwap<T>(string key, T value, T expectedValue, int version)
+    {
+        var valueJson = JsonSerializer.Serialize(value);
+        var expectedValueJson = JsonSerializer.Serialize(expectedValue);
+        return await CompareAndSwap(key, valueJson, expectedValueJson, version);
     }
 }

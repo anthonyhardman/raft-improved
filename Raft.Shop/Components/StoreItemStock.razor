@@ -1,6 +1,4 @@
-﻿<h3>StoreItemStock</h3>
-
-@if (ShowError)
+﻿@if (ShowError)
 {
     <div class="alert alert-danger d-flex justify-content-start" role="alert">
         <button class="btn btn-outline-danger" @onclick="() => ShowError = false">X</button>
@@ -13,7 +11,7 @@
 <div class="border p-2 my-2">
     <div class="row">
         <p class="col">@Item.Name</p>
-        <p class="col">Price: $@Item.Price</p>
+        <p class="col">Price: @Item.Price.ToString("C2", new System.Globalization.CultureInfo("ja-JP"))</p>
         <p class="col">Stock: @Item.Stock</p>
     </div>
     <div class="d-flex justify-content-end">

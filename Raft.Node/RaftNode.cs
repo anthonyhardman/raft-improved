@@ -39,7 +39,7 @@ public class RaftNode : IRaftNode
     public ConcurrentDictionary<string, (int logIndex, string value)> StateMachine { get; set; }
     public string MostRecentLeaderId { get; set; }
 
-    private readonly AsyncRetryPolicy _retryPolicy = Policy.Handle<Exception>().RetryAsync(3, (exception, retryCount) =>
+    private readonly AsyncRetryPolicy _retryPolicy = Policy.Handle<Exception>().RetryAsync(1, (exception, retryCount) =>
         {
             Console.WriteLine($"Error connecting to node Retry:{retryCount} {exception.Message}. Retrying...");
         });
@@ -58,12 +58,20 @@ public class RaftNode : IRaftNode
         StateMachine = new();
         UpdateStateMachine();
         Peers = peers;
-        NextIndex = peers.Select(_ => 0).ToList();
-        MatchIndex = peers.Select(_ => 0).ToList();
-        ActionTimer = new Timer();
+        InitializeNextAndMatchIndex();
+        ActionTimer = new Timer
+        {
+            AutoReset = false,
+        };
         ActionTimer.Elapsed += DoAction;
         ActionTimer.Interval = GetTimerInterval();
         ActionTimer.Start();
+    }
+
+    private void InitializeNextAndMatchIndex()
+    {
+        NextIndex = Peers.Select(_ => Log.Count).ToList();
+        MatchIndex = Peers.Select(_ => 0).ToList();
     }
 
 
@@ -91,7 +99,7 @@ public class RaftNode : IRaftNode
             return 50;
         }
 
-        return new Random().Next(500, 1000);
+        return new Random().Next(150, 300);
     }
 
     private RaftState LoadState()
@@ -198,6 +206,7 @@ public class RaftNode : IRaftNode
                             VotedFor = null;
                             Role = RaftRole.Follower;
                             SaveState();
+                            ResetActionTimer();
                             return;
                         }
 
@@ -229,6 +238,7 @@ public class RaftNode : IRaftNode
                 break;
             }
         }
+        ResetActionTimer();
     }
 
     private void UpdateStateMachine()
@@ -246,14 +256,28 @@ public class RaftNode : IRaftNode
     {
         if (Role != RaftRole.Leader || !await MajorityOfPeersHaveMeAsLeader())
         {
-            var msg = $"{Id} is not leader or does not have majority of peers as leader";
-            Console.WriteLine(msg);
-            return new CompareAndSwapResponse
+            // var msg = $"{Id} is not leader or does not have majority of peers as leader";
+            // Console.WriteLine(msg);
+            // return new CompareAndSwapResponse
+            // {
+            //     Success = false,
+            //     Version = int.MinValue,
+            //     Value = "NOT_LEADER"
+            // };
+
+            var leader = Peers.FirstOrDefault(x => x.Id == MostRecentLeaderId);
+
+            if (leader == null)
             {
-                Success = false,
-                Version = int.MinValue,
-                Value = msg
-            };
+                return new CompareAndSwapResponse
+                {
+                    Success = false,
+                    Version = int.MinValue,
+                    Value = "NOT_LEADER"
+                };
+            }
+
+            return await leader.CompareAndSwap(request);
         }
 
         if (StateMachine.TryGetValue(request.Key, out var value))
@@ -261,7 +285,7 @@ public class RaftNode : IRaftNode
             if (value.logIndex == request.Version && value.value == request.ExpectedValue)
             {
                 Log.Append(new LogEntry(CurrentTerm, request.Key, request.NewValue));
-                SendHeartbeat();
+                await SendHeartbeat();
                 return new CompareAndSwapResponse
                 {
                     Success = true,
@@ -283,7 +307,7 @@ public class RaftNode : IRaftNode
         else
         {
             Log.Append(new LogEntry(CurrentTerm, request.Key, request.NewValue));
-            SendHeartbeat();
+            await SendHeartbeat();
             return new CompareAndSwapResponse
             {
                 Success = true,
@@ -310,6 +334,8 @@ public class RaftNode : IRaftNode
         VotedFor = Id;
         SaveState();
         var votes = 1;
+        ResetActionTimer();
+        Console.WriteLine($"{Id} holding election with term {CurrentTerm}");
 
         var request = new RequestVoteRequest
         {
@@ -325,10 +351,11 @@ public class RaftNode : IRaftNode
             {
                 await _retryPolicy.ExecuteAsync(async () =>
                 {
-
+                    Console.WriteLine($"{Id} requesting vote from {peer.Id}");
                     var response = await peer.RequestVote(request);
                     if (response.Term > CurrentTerm)
                     {
+                        Console.WriteLine($"{Id} received higher term from {peer.Id}: {response.Term} current term: {CurrentTerm}");
                         CurrentTerm = response.Term;
                         VotedFor = null;
                         SaveState();
@@ -354,6 +381,7 @@ public class RaftNode : IRaftNode
             Console.WriteLine($"{Id} won election Num Votes: {votes} peers: {Peers.Count}");
             Role = RaftRole.Leader;
             MostRecentLeaderId = Id;
+            InitializeNextAndMatchIndex();
             await SendHeartbeat();
             return;
         }
@@ -363,10 +391,21 @@ public class RaftNode : IRaftNode
 
     public async Task<RequestVoteResponse> RequestVote(RequestVoteRequest request)
     {
-        Console.WriteLine($"{Id} received vote request from {request.CandidateId}");
+        Console.WriteLine($"{Id} received vote request from {request.CandidateId} term: {request.Term} lastLogIndex: {request.LastLogIndex} lastLogTerm: {request.LastLogTerm}");
+        if (request.Term > CurrentTerm)
+        {
+            Console.WriteLine($"{Id} received higher term from {request.CandidateId}: {request.Term} current term: {CurrentTerm}");
+            CurrentTerm = request.Term;
+            VotedFor = null;
+            Role = RaftRole.Follower;
+            SaveState();
+            ResetActionTimer();
+        }
+        
+                
         if (request.Term < CurrentTerm)
         {
-            Console.WriteLine($"{Id} denied vote to {request.CandidateId} because term is less");
+            Console.WriteLine($"{Id} denied vote to {request.CandidateId} because term {request.Term} is less than {CurrentTerm}");
             return new RequestVoteResponse
             {
                 Term = CurrentTerm,
@@ -391,7 +430,8 @@ public class RaftNode : IRaftNode
                 };
             }
         }
-
+        
+        Console.WriteLine($"{Id} denied vote to {request.CandidateId} already voted for {VotedFor} in term {CurrentTerm}");
         return new RequestVoteResponse
         {
             Term = CurrentTerm,
@@ -421,11 +461,18 @@ public class RaftNode : IRaftNode
     {
         if (Role != RaftRole.Leader || !await MajorityOfPeersHaveMeAsLeader())
         {
-            return new StrongGetResponse
+            var leader = Peers.FirstOrDefault(x => x.Id == MostRecentLeaderId);
+
+            if (leader == null)
             {
-                Value = "NOT_LEADER",
-                Version = int.MinValue
-            };
+                return new StrongGetResponse
+                {
+                    Value = "NOT_LEADER",
+                    Version = int.MinValue
+                };
+            }
+
+            return await leader.StrongGet(key);
         }
 
         if (!StateMachine.TryGetValue(key, out var value))
@@ -449,8 +496,17 @@ public class RaftNode : IRaftNode
     private void ResetActionTimer()
     {
         ActionTimer.Stop();
-        ActionTimer.Interval = new Random().Next(500, 1000);
+        ActionTimer.Interval = GetResetInterval();
         ActionTimer.Start();
+    }
+
+    private int GetResetInterval()
+    {
+        if (Role == RaftRole.Leader)
+        {
+            return 50;
+        }
+        return new Random().Next(500, 1000);
     }
 
     public async Task<bool> IsMostRecentLeader(string leaderId)

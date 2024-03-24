@@ -15,7 +15,6 @@ public class BalanceService
         try
         {
             var userBalanceKey = $"{userId.Replace(" ", "-")}-balance";
-            Console.WriteLine($"Getting balance for {userBalanceKey}");
             return await _raftService.StrongGet<decimal>(userBalanceKey);
         }
         catch (Exception e)

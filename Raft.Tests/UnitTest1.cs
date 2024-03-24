@@ -322,7 +322,7 @@ public class Tests
 
 
     [Test]
-    public async Task StrongGetDoesntWorkIfNotLeader()
+    public async Task StrongGetDoesntWorkIfNotLeaderAndRequestCantBeProxiedToLeader()
     {
         RaftNode node1, node2, node3;
         ThreeNodeSetup(out node1, out node2, out node3);
@@ -338,8 +338,8 @@ public class Tests
         node1.DoAction(null, null);
 
         var result = await node2.StrongGet("key");
-        result.Value.Should().Be(null);
-        result.Version.Should().Be(-1);
+        result.Value.Should().Be("NOT_FOUND");
+        result.Version.Should().Be(int.MinValue);
     }
 
     [Test]
@@ -360,8 +360,8 @@ public class Tests
 
         node2.Role = RaftRole.Leader;
         var result = await node2.StrongGet("key");
-        result.Value.Should().Be(null);
-        result.Version.Should().Be(-1);
+        result.Value.Should().Be("NOT_FOUND");
+        result.Version.Should().Be(int.MinValue);
     }
 
     [Test]
