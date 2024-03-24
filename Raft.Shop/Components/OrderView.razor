@@ -29,6 +29,7 @@
 @code {
     [Inject] public OrderService OrderService { get; set; }
     [Parameter] public string OrderId { get; set; }
+    [Parameter] public Func<Task>? OnOrderProcessed { get; set; }
 
     private Order Order { get; set; }
     private string OrderStatus { get; set; }
@@ -42,5 +43,10 @@
     {
         Console.WriteLine("Processing order...");
         await OrderService.ProcessOrder(Order);
+
+        if (OnOrderProcessed != null)
+        {
+            await OnOrderProcessed.Invoke();
+        }
     }
 }
