@@ -506,7 +506,7 @@ public class RaftNode : IRaftNode
         {
             return 50;
         }
-        return new Random().Next(500, 1000);
+        return new Random().Next(1000, 1500);
     }
 
     public async Task<bool> IsMostRecentLeader(string leaderId)
