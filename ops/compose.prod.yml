@@ -21,7 +21,7 @@ services:
     ports:
       - 345:8080
     environment:
-      - NODE_ADDRESSES=http://ah-node-1:8080,http://ah-node-2:8080,http://144.17.92.14:349
+      - NODE_ADDRESSES=http://ah-node-1:8080,http://ah-node-2:8080,http://144.17.92.14:348
       - NODE_IDS=ah-node-1,ah-node-2,ah-node-3
     profiles:
       - server-5
