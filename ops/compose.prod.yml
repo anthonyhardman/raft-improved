@@ -3,7 +3,7 @@ services:
     container_name: ah-shop
     build:
       context: ..
-      dockerfile: ../Raft.Shop/Dockerfile
+      dockerfile: Raft.Shop/Dockerfile
     image: ah-shop
     ports:
       - 344:8080
@@ -16,7 +16,7 @@ services:
     container_name: ah-ah-gateway
     build:
       context: ..
-      dockerfile: ../Raft.ah-Gateway/Dockerfile
+      dockerfile: RaftGateway/Dockerfile
     image: ah-ah-gateway
     ports:
       - 345:8080
@@ -30,7 +30,7 @@ services:
     container_name: ah-node-1
     build:
       context: ..
-      dockerfile: ../Raft.Node/Dockerfile
+      dockerfile: Raft.Node/Dockerfile
     image: ah-node
     environment:
       - NODE_ID=ah-node-1
@@ -61,7 +61,7 @@ services:
       - PEER_IDS=ah-node-1,node-2
     build:
       context: ..
-      dockerfile: ../Raft.Node/Dockerfile
+      dockerfile: Raft.Node/Dockerfile
     image: ah-node
     ports:
       - 348:8080
