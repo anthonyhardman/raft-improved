@@ -1,0 +1,60 @@
+version: '3'
+
+services:
+  gateway:
+    container_name: ah-gateway
+    image: ah-gateway:latest
+    build:
+      context: ..
+      dockerfile: ../Raft.Gateway/Dockerfile
+    ports:
+      - 345:8080
+    environment:
+      - NODE_ADDRESSES=http://node-1:8080,http://node-2:8080,http://144.17.92.14:349
+      - NODE_IDS=node-1,node-2,node-3
+    profiles:
+      - server-5
+
+  node-1:
+    container_name: ah-node-1
+    image: ah-node:latest
+    build:
+      context: ..
+      dockerfile: ../Raft.Node/Dockerfile
+    environment:
+        - NODE_ID=node-1
+        - PEER_ADDRESSES=http://node-2:8080,http://144.17.92.14:348
+        - PEER_IDS=node-2,node-3
+    ports:
+      - 346:8080  
+    profiles:
+      - server-5
+
+  node-2:
+    container_name: ah-node-2
+    image: ah-node:latest
+    environment:
+        - NODE_ID=node-2
+        - PEER_ADDRESSES=http://node-1:8080,http://144.17.92.14:348
+        - PEER_IDS=node-2,node-3
+    ports:
+      - 347:8080  
+    profiles:
+      - server-5
+
+  node-3:
+    container_name: ah-node-3
+    image: ah-node:latest
+    environment:
+        - NODE_ID=node-3
+        - PEER_ADDRESSES=http://144.17.92.15:346,http://144.17.92.15:347
+        - PEER_IDS=node-1,node-2
+    ports:
+      - 348:8080  
+    profiles:
+      - server-4
+  
+networks:
+  default:
+    internal: true
+    name: ah-raft-network
